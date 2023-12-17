@@ -11,7 +11,7 @@ import (
 var branch *string
 
 func printHelp() {
-	println("Usage: git clone [-b <branch>] <repo> [<dir>]")
+	println("Usage: degit [-b <branch>] <repo> [<dir>]")
 }
 
 func init() {
