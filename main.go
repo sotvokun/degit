@@ -128,16 +128,30 @@ func cacheRepository(src string, ref HashRef) error {
 	}
 
 	err = walkRepositoryFilesystem(fs, "/", func(path string, dir string) error {
-		file, err := fs.Open(path)
+		fileinfo, err := fs.Lstat(path)
 		if err != nil {
 			return err
 		}
-		fileinfo, err := fs.Stat(path)
-		if err != nil {
-			return err
+
+		if fileinfo.Mode().IsRegular() {
+			file, err := fs.Open(path)
+			if err != nil {
+				return err
+			}
+			archiveWriter.Add(file, &fileinfo, path)
+			file.Close()
+		} else if fileinfo.Mode()&os.ModeSymlink == os.ModeSymlink {
+			targetLink, err := fs.Readlink(path)
+			if err != nil {
+				return err
+			}
+			err = archiveWriter.Symlink(&fileinfo, path, targetLink)
+			if err != nil {
+				return err
+			}
+		} else {
+			fmt.Println("Skipping:", path)
 		}
-		archiveWriter.Add(file, &fileinfo, path)
-		file.Close()
 		return nil
 	})
 	if err != nil {

@@ -18,27 +18,33 @@ func uncompressArchive(reader io.Reader, dest string) error {
 	tarReader := tar.NewReader(gzipReader)
 	var header *tar.Header
 	for header, err = tarReader.Next(); err == nil; header, err = tarReader.Next() {
-		if header.Typeflag != tar.TypeReg {
-			continue
-		}
 		path := filepath.Join(dest, header.Name)
 
-		dir := filepath.Dir(path)
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("error creating directory: %s", err)
-		}
+		if header.Typeflag == tar.TypeReg {
+			dir := filepath.Dir(path)
+			err := os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				return fmt.Errorf("error creating directory: %s", err)
+			}
 
-		outFile, err := os.Create(path)
-		if err != nil {
-			return fmt.Errorf("error creating file: %s", err)
-		}
-		if _, err := io.Copy(outFile, tarReader); err != nil {
-			outFile.Close()
-			return fmt.Errorf("error writing file: %s", err)
-		}
-		if err := outFile.Close(); err != nil {
-			return fmt.Errorf("error closing file: %s", err)
+			outFile, err := os.Create(path)
+			if err != nil {
+				return fmt.Errorf("error creating file: %s", err)
+			}
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				outFile.Close()
+				return fmt.Errorf("error writing file: %s", err)
+			}
+			if err := outFile.Close(); err != nil {
+				return fmt.Errorf("error closing file: %s", err)
+			}
+		} else if header.Typeflag == tar.TypeSymlink {
+			err := os.Symlink(header.Linkname, path)
+			if err != nil {
+				return fmt.Errorf("error creating symlink: %s", err)
+			}
+		} else {
+			continue
 		}
 	}
 	if err != io.EOF {

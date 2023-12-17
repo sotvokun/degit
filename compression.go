@@ -63,6 +63,18 @@ func (writer *ArchiveWriter) Add(file billy.File, fileinfo *os.FileInfo, filenam
 	return nil
 }
 
+func (writer *ArchiveWriter) Symlink(fileinfo *os.FileInfo, filename string, target string) error {
+	header, err := tar.FileInfoHeader(*fileinfo, target)
+	if err != nil {
+		return err
+	}
+	header.Name = filepath.ToSlash(filename)
+	if err := writer.Tarball.WriteHeader(header); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (writer *ArchiveWriter) Close() error {
 	if err := writer.Tarball.Close(); err != nil {
 		return err
