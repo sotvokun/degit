@@ -1,25 +1,29 @@
 package main
 
 import (
+	"degit/internal/degit"
+	"degit/internal/git"
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
 var branch *string
 
 func printHelp() {
-	println("Usage: degit [-b <branch>] <repo> [<dir>]")
+	fmt.Println("Usage: degit <src>[#<ref>] [<dest>]")
 }
 
 func init() {
 	flag.Usage = printHelp
-	branch = flag.String("b", "", "branch to clone")
 }
 
 func main() {
+	dest := "."
+	ref := ""
+	src := ""
+
 	flag.Parse()
 
 	args := flag.Args()
@@ -28,155 +32,50 @@ func main() {
 		os.Exit(1)
 	}
 
-	src := resolveRepositoryUrl(args[0])
-	dest := "."
 	if len(args) > 1 {
 		dest = args[1]
 	}
 
-	ref, err := getRepositoryMatchedRef(src, branch)
+	if strings.Contains(args[0], "#") {
+		split := strings.Split(args[0], "#")
+		ref = split[len(split)-1]
+		src = strings.Join(split[:len(split)-1], "#")
+	}
+
+	src = degit.ResolveRemoteUrl(src)
+	refs, err := git.GetRemoteRefs(src)
+	if err != nil {
+		die(err)
+	}
+
+	targetRef, err := git.SearchRef(refs, &ref)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	cacheExists, err := checkCacheExists(src, ref)
+	repositoryCache := degit.NewRepositoryCache(src, *targetRef)
+	exists, err := repositoryCache.Exists()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		die(err)
 	}
 
-	if !cacheExists {
-		err := cacheRepository(src, ref)
+	if !exists {
+		err := repositoryCache.Cache(true)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			die(err)
 		}
 	}
 
-	cacheDirFilename, err := getCacheFileName(src, ref)
+	err = repositoryCache.Extract(dest)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	cacheDir, err := getCacheDir()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	cachePath := filepath.Join(cacheDir, cacheDirFilename)
-
-	err = extractCache(cachePath, dest)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		die(err)
 	}
 
 	os.Exit(0)
 }
 
-func getCacheFileName(src string, ref HashRef) (string, error) {
-	name, err := getRepositoryName(src)
-	if err != nil {
-		return "", err
-	}
-	filename := name + "-" + ref.Ref.Short() + "-" + ref.Hash + ".tar.gz"
-	return strings.Replace(filename, "/", "--", -1), nil
-}
-
-func checkCacheExists(src string, ref HashRef) (bool, error) {
-	filename, err := getCacheFileName(src, ref)
-	if err != nil {
-		return false, err
-	}
-
-	cacheDir, err := getCacheDir()
-	if err != nil {
-		return false, err
-	}
-	_, err = os.Stat(filepath.Join(cacheDir, filename))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-func cacheRepository(src string, ref HashRef) error {
-	filename, err := getCacheFileName(src, ref)
-	if err != nil {
-		return err
-	}
-
-	cacheDir, err := getCacheDir()
-	if err != nil {
-		return err
-	}
-
-	filepath := filepath.Join(cacheDir, filename)
-	_, fs, err := cloneRepository(src, ref)
-	if err != nil {
-		return err
-	}
-
-	archiveWriter, err := createArchive(filepath)
-	if err != nil {
-		return err
-	}
-
-	err = walkRepositoryFilesystem(fs, "/", func(path string, dir string) error {
-		fileinfo, err := fs.Lstat(path)
-		if err != nil {
-			return err
-		}
-
-		if fileinfo.Mode().IsRegular() {
-			file, err := fs.Open(path)
-			if err != nil {
-				return err
-			}
-			archiveWriter.Add(file, &fileinfo, path)
-			file.Close()
-		} else if fileinfo.Mode()&os.ModeSymlink == os.ModeSymlink {
-			targetLink, err := fs.Readlink(path)
-			if err != nil {
-				return err
-			}
-			err = archiveWriter.Symlink(&fileinfo, path, targetLink)
-			if err != nil {
-				return err
-			}
-		} else {
-			fmt.Println("Skipping:", path)
-		}
-		return nil
-	})
-	if err != nil {
-		archiveWriter.Close()
-		return err
-	}
-
-	err = archiveWriter.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func extractCache(path string, dest string) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	err = uncompressArchive(file, dest)
-	if err != nil {
-		return err
-	}
-	return nil
+func die(err error) {
+	fmt.Println(err)
+	os.Exit(1)
 }
