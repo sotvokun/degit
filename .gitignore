@@ -2,3 +2,5 @@ degit
 .DS_Store
 
 /.vscode
+
+!internal/degit
