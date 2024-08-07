@@ -18,6 +18,13 @@ type RepositoryCache struct {
 	localFileName *string
 }
 
+type RepositoryCacheOptions struct {
+	Force          bool
+	PrivateKeyPath string
+	Username       string
+	Password       string
+}
+
 func NewRepositoryCache(remoteUrl string, ref git.HashRef) *RepositoryCache {
 	return &RepositoryCache{
 		remoteUrl: remoteUrl,
@@ -95,21 +102,30 @@ func (c *RepositoryCache) Extract(dest string) error {
 	return nil
 }
 
-func (c *RepositoryCache) Cache(force ...bool) error {
-	doForce := false
-	if len(force) > 0 {
-		doForce = force[0]
+func (c *RepositoryCache) Cache(options ...RepositoryCacheOptions) error {
+	cloneOptions := RepositoryCacheOptions{
+		Force:          false,
+		Username:       "",
+		Password:       "",
+		PrivateKeyPath: "",
+	}
+	if len(options) > 0 {
+		cloneOptions = options[0]
 	}
 
 	exists, err := c.Exists()
 	if err != nil {
 		return err
 	}
-	if exists && !doForce {
+	if exists && !cloneOptions.Force {
 		return nil
 	}
 
-	_, fs, err := git.Clone(c.remoteUrl, c.ref)
+	_, fs, err := git.Clone(c.remoteUrl, c.ref, git.Auth{
+		Username:       cloneOptions.Username,
+		Password:       cloneOptions.Password,
+		PrivateKeyPath: cloneOptions.PrivateKeyPath,
+	})
 	if err != nil {
 		return err
 	}

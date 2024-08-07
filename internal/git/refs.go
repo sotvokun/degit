@@ -15,12 +15,23 @@ type HashRef struct {
 	Ref  plumbing.ReferenceName
 }
 
-func GetRemoteRefs(url_ string) ([]HashRef, error) {
+func GetRemoteRefs(url_ string, auth ...Auth) ([]HashRef, error) {
 	remote := git.NewRemote(memory.NewStorage(), &config.RemoteConfig{
 		Name: "origin",
 		URLs: []string{url_},
 	})
-	refs, err := remote.List(&git.ListOptions{})
+
+	listOptions := &git.ListOptions{}
+
+	if len(auth) > 0 {
+		authMethod, err := NewAuthMethod(auth[0])
+		if err != nil {
+			return nil, err
+		}
+		listOptions.Auth = authMethod
+	}
+
+	refs, err := remote.List(listOptions)
 	if err != nil {
 		return nil, err
 	}

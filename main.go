@@ -10,12 +10,22 @@ import (
 )
 
 var branch *string
+var sshPrivateKeyPath string
+var username string
+var password string
 
 func printHelp() {
-	fmt.Println("Usage: degit <src>[#<ref>] [<dest>]")
+	fmt.Println("Usage: degit [options] <src>[#<ref>] [<dest>]")
+	fmt.Println("Options:")
+	fmt.Println("  -i <path>  Path to the SSH private key")
+	fmt.Println("  -l <name>  Username for authentication")
+	fmt.Println("  -p <pass>  Password or personal access token for authentication or SSH private key passphrase")
 }
 
 func init() {
+	flag.StringVar(&sshPrivateKeyPath, "i", "", "Path to the SSH private key")
+	flag.StringVar(&username, "l", "", "Username for the Git repository")
+	flag.StringVar(&password, "p", "", "Password or personal access token for the Git repository")
 	flag.Usage = printHelp
 }
 
@@ -45,7 +55,11 @@ func main() {
 	}
 
 	src = degit.ResolveRemoteUrl(src)
-	refs, err := git.GetRemoteRefs(src)
+	refs, err := git.GetRemoteRefs(src, git.Auth{
+		PrivateKeyPath: sshPrivateKeyPath,
+		Username:       username,
+		Password:       password,
+	})
 	if err != nil {
 		die(err)
 	}
@@ -63,7 +77,12 @@ func main() {
 	}
 
 	if !exists {
-		err := repositoryCache.Cache(true)
+		err := repositoryCache.Cache(degit.RepositoryCacheOptions{
+			Force:          true,
+			Username:       username,
+			Password:       password,
+			PrivateKeyPath: sshPrivateKeyPath,
+		})
 		if err != nil {
 			die(err)
 		}

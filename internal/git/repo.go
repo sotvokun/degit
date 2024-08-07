@@ -15,17 +15,28 @@ import (
 type InMemoryFilesystem struct {
 	fs billy.Filesystem
 }
+
 type WalkCallback func(path string, dir string) error
 
-func Clone(url_ string, ref HashRef) (*git.Repository, *InMemoryFilesystem, error) {
+func Clone(url_ string, ref HashRef, auth ...Auth) (*git.Repository, *InMemoryFilesystem, error) {
 	fs := memfs.New()
-	repo, err := gogit.Clone(memory.NewStorage(), fs, &gogit.CloneOptions{
+	cloneOptions := &gogit.CloneOptions{
 		URL:               url_,
 		ReferenceName:     ref.Ref,
 		Depth:             1,
 		SingleBranch:      true,
 		RecurseSubmodules: gogit.DefaultSubmoduleRecursionDepth,
-	})
+	}
+
+	if len(auth) > 0 {
+		authMethod, err := NewAuthMethod(auth[0])
+		if err != nil {
+			return nil, nil, err
+		}
+		cloneOptions.Auth = authMethod
+	}
+
+	repo, err := gogit.Clone(memory.NewStorage(), fs, cloneOptions)
 	if err != nil {
 		return nil, nil, err
 	}
