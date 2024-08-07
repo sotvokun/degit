@@ -40,6 +40,8 @@ func main() {
 		split := strings.Split(args[0], "#")
 		ref = split[len(split)-1]
 		src = strings.Join(split[:len(split)-1], "#")
+	} else {
+		src = args[0]
 	}
 
 	src = degit.ResolveRemoteUrl(src)
