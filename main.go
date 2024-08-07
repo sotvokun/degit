@@ -52,7 +52,7 @@ func main() {
 
 	targetRef, err := git.SearchRef(refs, &ref)
 	if err != nil {
-		fmt.Println(err)
+		die(err)
 		os.Exit(1)
 	}
 
