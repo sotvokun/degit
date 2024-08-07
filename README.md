@@ -1,10 +1,12 @@
 > This is a golang implementation of [degit](https://github.com/Rich-Harris/degit)
 
-> NOTE: In current version of this `degit`, the implementation is different than JavaScript edition. It will implement on next version.
-
 # degit — straightforward project scaffolding
 
 ## Usage
 ```
-Usage: degit [-b <branch>] <src> [<dest>]
+Usage: degit [options] <src>[#<ref>] [<dest>]
+Options:
+  -i <path>  Path to the SSH private key
+  -l <name>  Username for authentication
+  -p <pass>  Password or personal access token for authentication or SSH private key passphrase
 ```
