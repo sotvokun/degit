@@ -1,8 +1,6 @@
 module degit
 
-go 1.22.0
-
-toolchain go1.22.8
+go 1.22
 
 require (
 	github.com/go-git/go-billy/v5 v5.6.2
