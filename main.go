@@ -1,6 +1,7 @@
 package main
 
 import (
+	"degit/internal/cli"
 	"degit/internal/degit"
 	"degit/internal/git"
 	"flag"
@@ -12,19 +13,22 @@ import (
 var sshPrivateKeyPath string
 var username string
 var password string
+var variables cli.VariableFlag
 
 func printHelp() {
 	fmt.Println("Usage: degit [options] <src>[#<ref>] [<dest>]")
 	fmt.Println("Options:")
-	fmt.Println("  -i <path>  Path to the SSH private key")
-	fmt.Println("  -l <name>  Username for authentication")
-	fmt.Println("  -p <pass>  Password or personal access token for authentication or SSH private key passphrase")
+	fmt.Println("  -i <path>        Path to the SSH private key")
+	fmt.Println("  -l <name>        Username for authentication")
+	fmt.Println("  -p <pass>        Password or personal access token for authentication or SSH private key passphrase")
+	fmt.Println("  -D <key>=<value> Define variables to be used to replace placeholders in the template")
 }
 
 func init() {
 	flag.StringVar(&sshPrivateKeyPath, "i", "", "Path to the SSH private key")
 	flag.StringVar(&username, "l", "", "Username for the Git repository")
 	flag.StringVar(&password, "p", "", "Password or personal access token for the Git repository")
+	flag.Var(&variables, "D", "Define variables to be used to replace placeholders in the template")
 	flag.Usage = printHelp
 }
 
