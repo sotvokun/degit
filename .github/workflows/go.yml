@@ -26,13 +26,13 @@ jobs:
       run: go mod download
 
     - name: Build Linux amd64
-      run: env GOOS=linux GOARCH=amd64 go build -o degit_linux-amd64
+      run: env GOOS=linux GOARCH=amd64 go build -o degit_linux-amd64 ./cmd/degit.go
 
     - name: Build Windows amd64
-      run: env GOOS=windows GOARCH=amd64 go build -o degit_windows-amd64.exe
+      run: env GOOS=windows GOARCH=amd64 go build -o degit_windows-amd64.exe ./cmd/degit.go
 
     - name: Build macOS arm64
-      run: env GOOS=darwin GOARCH=arm64 go build -o degit_darwin-amd64
+      run: env GOOS=darwin GOARCH=arm64 go build -o degit_darwin-amd64 ./cmd/degit.go
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4

@@ -16,9 +16,9 @@ var password string
 func printHelp() {
 	fmt.Println("Usage: degit [options] <src>[#<ref>] [<dest>]")
 	fmt.Println("Options:")
-	fmt.Println("  -i <path>  Path to the SSH private key")
-	fmt.Println("  -l <name>  Username for authentication")
-	fmt.Println("  -p <pass>  Password or personal access token for authentication or SSH private key passphrase")
+	fmt.Println("  -i <path>        Path to the SSH private key")
+	fmt.Println("  -l <name>        Username for authentication")
+	fmt.Println("  -p <pass>        Password or personal access token for authentication or SSH private key passphrase")
 }
 
 func init() {
