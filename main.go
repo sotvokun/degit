@@ -9,7 +9,6 @@ import (
 	"strings"
 )
 
-var branch *string
 var sshPrivateKeyPath string
 var username string
 var password string
