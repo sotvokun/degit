@@ -1,12 +1,68 @@
-> This is a golang implementation of [degit](https://github.com/Rich-Harris/degit)
-
 # degit — straightforward project scaffolding
 
+## Introduction
+
+degit is a project scaffolding tool that offers two main features:
+- Downloads Git repositories without their `.git` folder and history
+- Provides a powerful templating system using Go's `text/template` package (WIP)
+
+This is a Go implementation of the original [degit](https://github.com/Rich-Harris/degit) tool, enhanced with template processing capabilities for more flexible project scaffolding.
+
 ## Usage
+
+### Basics
+
+The simplest use of degit is to download the main branch of a repository from any remote git repository to the current working directory:
+```sh
+degit https://github.com/user/repo
+degit git@gitlab.com:user/repo
+
+# A shortcut for github
+degit user/repo
 ```
-Usage: degit [options] <src>[#<ref>] [<dest>]
-Options:
-  -i <path>  Path to the SSH private key
-  -l <name>  Username for authentication
-  -p <pass>  Password or personal access token for authentication or SSH private key passphrase
+
+#### Create a new folder for the project
+```sh
+degit user/repo my-new-project
+```
+
+#### Specify a tag, branch (commit hash has not support yet)
+```sh
+degit user/repo#dev         # branch
+degit user/repo#v1.2.3      # tag
+```
+
+#### Private repository
+```sh
+degit -i path/to/ssh/private-key user/repo          # auth with key
+degit -l identifier -p secret user/repo             # auth with username/password/access token
+```
+
+### Template
+
+degit also can be use as the template engine commandline interface to render template file(s).
+
+```sh
+# rendering template and replace template file with result
+degit template path/of/template
+
+# rendering template but put result into a new file
+degit template path/of/template path/of/result
+
+# rendering with given variables
+degit template -D foo=bar -D abc=xyz path/of/template
+```
+
+#### Options
+
+```sh
+degit template -s key=value -s key2=value2 path/of/template
+```
+
+WIP: option list
+
+#### Rendering with glob
+
+```sh
+degit template -g "src/**/*.js" -g "package.json"
 ```
