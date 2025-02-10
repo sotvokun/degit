@@ -66,7 +66,6 @@ func main() {
 	targetRef, err := git.SearchRef(refs, &ref)
 	if err != nil {
 		die(err)
-		os.Exit(1)
 	}
 
 	repositoryCache := degit.NewRepositoryCache(src, *targetRef)
