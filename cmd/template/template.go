@@ -41,7 +41,7 @@ func Execute(globalHelpFunc func(), die func(error)) {
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) == 0 || showHelp {
+	if (len(globs) == 0 && len(args) == 0) || showHelp {
 		printHelp()
 		os.Exit(1)
 	}
@@ -58,6 +58,38 @@ func Execute(globalHelpFunc func(), die func(error)) {
 }
 
 func executeWithGlob() error {
+	result, err := template.GlobRender(globs, definitions)
+	if err != nil {
+		return err
+	}
+
+	if dryRun {
+		for filepath, content := range result {
+			fmt.Printf("\033[33m:%s\033[0m\n", filepath)
+			fmt.Println(content)
+			if content[len(content)-1] != '\n' {
+				fmt.Println()
+			}
+		}
+		return nil
+	}
+
+	for filepath, content := range result {
+		outputFile, err := os.Create(filepath)
+		if err != nil {
+			outputFile.Close()
+			return err
+		}
+
+		_, err = outputFile.WriteString(content)
+		if err != nil {
+			outputFile.Close()
+			return err
+		}
+
+		outputFile.Close()
+	}
+
 	return nil
 }
 
