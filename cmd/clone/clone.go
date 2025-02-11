@@ -40,13 +40,13 @@ func Execute(globalHelpFunc func(), die func(error)) {
 
 	flag.Parse()
 
-	args := flag.Args()
-	if len(args) == 0 {
-		globalHelpFunc()
+	if showHelp {
+		printHelp()
 		os.Exit(1)
 	}
 
-	if showHelp {
+	args := flag.Args()
+	if len(args) == 0 {
 		printHelp()
 		os.Exit(1)
 	}
