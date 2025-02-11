@@ -97,9 +97,9 @@ func executeWithPath(args []string) error {
 	}
 
 	src := args[0]
-	dist := ""
+	dest := ""
 	if len(args) > 1 {
-		dist = args[1]
+		dest = args[1]
 	}
 
 	content, err := executor.ReadFile(src)
@@ -119,7 +119,7 @@ func executeWithPath(args []string) error {
 	result := executor.ProcessResult{
 		src: {
 			Content: content,
-			Output:  dist,
+			Output:  dest,
 		},
 	}
 	exec := createExecutor()
