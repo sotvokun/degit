@@ -1,11 +1,11 @@
 package template
 
 import (
-	"degit/internal/template"
+	"degit/internal/template/executor"
+	"degit/internal/template/renderer"
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 var definitions MapVar
@@ -58,39 +58,32 @@ func Execute(globalHelpFunc func(), die func(error)) {
 }
 
 func executeWithGlob() error {
-	result, err := template.GlobRender(globs, definitions)
+	files, err := executor.Glob(globs)
 	if err != nil {
 		return err
 	}
 
-	if dryRun {
-		for filepath, content := range result {
-			fmt.Printf("\033[33m:%s\033[0m\n", filepath)
-			fmt.Println(content)
-			if content[len(content)-1] != '\n' {
-				fmt.Println()
-			}
+	renderer := renderer.New()
+	renderingResult, err := renderer.RenderFiles(files, definitions)
+	if err != nil {
+		return err
+	}
+
+	result := executor.ProcessResult{}
+	for filepath, content := range renderingResult {
+		result[filepath] = executor.ProcessResultItem{
+			Content: content,
+			Output:  filepath,
 		}
+	}
+
+	exec := executor.New()
+	if dryRun {
+		exec.PrintOutput(result)
 		return nil
 	}
 
-	for filepath, content := range result {
-		outputFile, err := os.Create(filepath)
-		if err != nil {
-			outputFile.Close()
-			return err
-		}
-
-		_, err = outputFile.WriteString(content)
-		if err != nil {
-			outputFile.Close()
-			return err
-		}
-
-		outputFile.Close()
-	}
-
-	return nil
+	return exec.WriteOutput(result)
 }
 
 func executeWithPath(args []string) error {
@@ -98,65 +91,35 @@ func executeWithPath(args []string) error {
 		return fmt.Errorf("no file paths provided")
 	}
 
-	src := ""
+	src := args[0]
 	dist := ""
-
-	if !filepath.IsAbs(args[0]) {
-		var err error
-		src, err = filepath.Abs(args[0])
-		if err != nil {
-			return err
-		}
-	} else {
-		src = args[0]
-	}
-
 	if len(args) > 1 {
 		dist = args[1]
-	} else {
-		dist = src
-	}
-	if !filepath.IsAbs(dist) {
-		var err error
-		dist, err = filepath.Abs(dist)
-		if err != nil {
-			return err
-		}
 	}
 
-	rawContent, err := os.ReadFile(src)
+	content, err := executor.ReadFile(src)
 	if err != nil {
 		return err
 	}
-	content := string(rawContent)
 
-	output, err := template.Render(content, definitions)
+	renderer := renderer.New()
+	content, err = renderer.Render(content, definitions)
 	if err != nil {
 		return err
 	}
+
+	result := executor.ProcessResult{
+		src: {
+			Content: content,
+			Output:  dist,
+		},
+	}
+	exec := executor.New()
 
 	if dryRun {
-		fmt.Println(output)
+		exec.PrintOutput(result)
 		return nil
 	}
 
-	distDir := filepath.Dir(dist)
-	if _, err := os.Stat(distDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(distDir, 0755); err != nil {
-			return err
-		}
-	}
-
-	outputFile, err := os.Create(dist)
-	if err != nil {
-		return err
-	}
-	defer outputFile.Close()
-
-	_, err = outputFile.WriteString(output)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return exec.WriteOutput(result)
 }
