@@ -59,7 +59,11 @@ degit template -D foo=bar -D abc=xyz path/of/template
 degit template -s key=value -s key2=value2 path/of/template
 ```
 
-WIP: option list
+| Key                | Example                                    | Description   |
+|--------------------|--------------------------------------------|---------------|
+| extions            | `extensions=template` `extensions=temp,in` | Used to define the path of result but only remove the extra extension, it also use for 'glob' command line option; separated by comma. |
+| delimiter          | `delimiter=<%,%>` `delimiter={%,%}` | Set the action delimiters of template to specific strings, left and right sides separated by comma. |
+| nonstrict          | `nonstrict=true` `nonstrict=TRUE` | Use the "zero value" for variables that not given. The value is 'true'; case insensitive |
 
 #### Rendering with glob
 

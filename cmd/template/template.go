@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
 var definitions MapVar
@@ -63,7 +64,10 @@ func executeWithGlob() error {
 		return err
 	}
 
-	renderer := renderer.New()
+	renderer, err := createRenderer()
+	if err != nil {
+		return err
+	}
 	renderingResult, err := renderer.RenderFiles(files, definitions)
 	if err != nil {
 		return err
@@ -78,6 +82,8 @@ func executeWithGlob() error {
 	}
 
 	exec := executor.New()
+	exec.Extension = getOptionExtensions()
+
 	if dryRun {
 		exec.PrintOutput(result)
 		return nil
@@ -102,7 +108,10 @@ func executeWithPath(args []string) error {
 		return err
 	}
 
-	renderer := renderer.New()
+	renderer, err := createRenderer()
+	if err != nil {
+		return err
+	}
 	content, err = renderer.Render(content, definitions)
 	if err != nil {
 		return err
@@ -115,6 +124,7 @@ func executeWithPath(args []string) error {
 		},
 	}
 	exec := executor.New()
+	exec.Extension = getOptionExtensions()
 
 	if dryRun {
 		exec.PrintOutput(result)
@@ -122,4 +132,48 @@ func executeWithPath(args []string) error {
 	}
 
 	return exec.WriteOutput(result)
+}
+
+func createRenderer() (*renderer.Renderer, error) {
+	r := renderer.New()
+	delimiter, err := getOptionDelimiter()
+	if err != nil {
+		return nil, err
+	}
+	r.SetDelimiter(delimiter[0], delimiter[1])
+	if getOptionNonstrict() {
+		r.SetMissingKeyPolicy(renderer.MissingKeyPolicyDefault)
+	}
+	return r, nil
+}
+
+func getOptionExtensions() []string {
+	ext, ok := options["extensions"]
+	if !ok {
+		return []string{}
+	}
+	return strings.Split(ext, ",")
+}
+
+func getOptionDelimiter() ([]string, error) {
+	delimiter, ok := options["delimiter"]
+	if !ok {
+		return []string{"{{", "}}"}, nil
+	}
+	commaCount := strings.Count(delimiter, ",")
+	if commaCount != 1 {
+		return nil, fmt.Errorf("invalid delimiter format")
+	}
+	if delimiter[0] == ',' || delimiter[len(delimiter)-1] == ',' {
+		return nil, fmt.Errorf("invalid delimiter format")
+	}
+	return strings.Split(delimiter, ","), nil
+}
+
+func getOptionNonstrict() bool {
+	nonstrict, ok := options["nonstrict"]
+	if !ok {
+		return false
+	}
+	return strings.ToLower(nonstrict) == "true"
 }
