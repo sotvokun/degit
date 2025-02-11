@@ -77,7 +77,7 @@ func executeWithGlob() error {
 	for filepath, content := range renderingResult {
 		result[filepath] = executor.ProcessResultItem{
 			Content: content,
-			Output:  filepath,
+			Output:  "",
 		}
 	}
 
