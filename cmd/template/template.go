@@ -81,8 +81,7 @@ func executeWithGlob() error {
 		}
 	}
 
-	exec := executor.New()
-	exec.Extension = getOptionExtensions()
+	exec := createExecutor()
 
 	if dryRun {
 		exec.PrintOutput(result)
@@ -123,8 +122,7 @@ func executeWithPath(args []string) error {
 			Output:  dist,
 		},
 	}
-	exec := executor.New()
-	exec.Extension = getOptionExtensions()
+	exec := createExecutor()
 
 	if dryRun {
 		exec.PrintOutput(result)
@@ -145,6 +143,13 @@ func createRenderer() (*renderer.Renderer, error) {
 		r.SetMissingKeyPolicy(renderer.MissingKeyPolicyDefault)
 	}
 	return r, nil
+}
+
+func createExecutor() *executor.Executor {
+	exec := executor.New()
+	exec.Extension = getOptionExtensions()
+	exec.RemoveSource = getOptionRemovesource()
+	return exec
 }
 
 func getOptionExtensions() []string {
@@ -176,4 +181,12 @@ func getOptionNonstrict() bool {
 		return false
 	}
 	return strings.ToLower(nonstrict) == "true"
+}
+
+func getOptionRemovesource() bool {
+	removesource, ok := options["removesource"]
+	if !ok {
+		return false
+	}
+	return strings.ToLower(removesource) == "true"
 }

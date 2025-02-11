@@ -15,12 +15,14 @@ type ProcessResultItem struct {
 type ProcessResult = map[string]ProcessResultItem
 
 type Executor struct {
-	Extension []string
+	Extension    []string
+	RemoveSource bool
 }
 
 func New() *Executor {
 	return &Executor{
-		Extension: []string{},
+		Extension:    []string{},
+		RemoveSource: false,
 	}
 }
 
@@ -52,6 +54,12 @@ func (e *Executor) WriteOutput(result ProcessResult) error {
 		if err != nil {
 			return err
 		}
+
+		if e.RemoveSource && source != r.Output {
+			if err := os.Remove(source); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -61,7 +69,14 @@ func (e *Executor) PrintOutput(result ProcessResult) {
 		if strings.TrimSpace(r.Output) == "" {
 			r.Output = e.processOutput(source)
 		}
-		fmt.Printf("\033[33m%s\033[0m \033[1m->\033[0m \033[32m%s\033[0m\n", source, r.Output)
+
+		format := "\033[32m%s\033[0m \033[1m<-\033[0m "
+		if e.RemoveSource && source != r.Output {
+			format += "\033[31m%s [REMOVED]\033[0m\n"
+		} else {
+			format += "\033[33m%s\033[0m\n"
+		}
+		fmt.Printf(format, r.Output, source)
 		fmt.Println(r.Content)
 		if r.Content[len(r.Content)-1] != '\n' {
 			fmt.Println()

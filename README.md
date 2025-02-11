@@ -4,7 +4,7 @@
 
 degit is a project scaffolding tool that offers two main features:
 - Downloads Git repositories without their `.git` folder and history
-- Provides a powerful templating system using Go's `text/template` package (WIP)
+- Provides a powerful templating system using Go's `text/template` package
 
 This is a Go implementation of the original [degit](https://github.com/Rich-Harris/degit) tool, enhanced with template processing capabilities for more flexible project scaffolding.
 
@@ -64,6 +64,7 @@ degit template -s key=value -s key2=value2 path/of/template
 | extions            | `extensions=template` `extensions=temp,in` | Used to define the path of result but only remove the extra extension, it also use for 'glob' command line option; separated by comma. |
 | delimiter          | `delimiter=<%,%>` `delimiter={%,%}` | Set the action delimiters of template to specific strings, left and right sides separated by comma. |
 | nonstrict          | `nonstrict=true` `nonstrict=TRUE` | Use the "zero value" for variables that not given. The value is 'true'; case insensitive |
+| removesource       | `removesource=true`               | Remove the "source file" if the file path of result is not same with the path of "source file" |
 
 #### Rendering with glob
 
