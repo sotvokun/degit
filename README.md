@@ -38,6 +38,48 @@ degit -i path/to/ssh/private-key user/repo          # auth with key
 degit -l identifier -p secret user/repo             # auth with username/password/access token
 ```
 
+### (WIP) Scaffold (Powered by Template)
+
+With the template feature of degit, it can quickly scaffold project with a few of command.
+
+#### Preparations
+
+1. Create a folder named `.degit` in the root of project or template.
+2. Create a file named `degit.yaml` (or `degit.yml`) under folder created above.
+3. Configurate `degit.yaml`.
+
+#### Initialize project
+
+```sh
+degit scaffold .
+```
+
+This command will doing template rendering in glob mode with the pattern defined in configuration file.
+The variables in template will be set by user input interactivly.
+
+```sh
+# define variables without interactive prompt
+degit scaffold -D foo=bar .
+```
+
+#### Scaffold single/multiple file(s)
+
+```sh
+# rendering template and put the result into a new file
+degit scaffold template/in/degit/folder -o target/path/of/file
+
+# same as the above, but degit will search the config file to find the real path of template
+degit scaffold alias/of/a/template/file -o target/path/of/file
+
+# rendering a batch of files and put them into the specific place that defined in the config file
+degit scaffold alias/of/a/batch/of/files
+
+# define variables without interactive prompt
+degit scaffold alias/of/files -D foo=bar
+```
+
+All usage above are same as the project initialization. The variables will be set by user input interactively.
+
 ### Template
 
 degit also can be use as the template engine commandline interface to render template file(s).
