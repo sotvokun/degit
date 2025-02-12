@@ -21,7 +21,7 @@ func repoCacheNamePlain(url string, refName string, hash string) (string, error)
 		refName,
 		hash,
 	)
-	fileName = strings.Replace(fileName, "/", "___", -1)
+	fileName = strings.ReplaceAll(fileName, "/", "___")
 	return fileName, nil
 }
 

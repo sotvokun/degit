@@ -35,35 +35,20 @@ func initFlag() {
 func Execute(globalHelpFunc func(), die func(error)) {
 	initFlag()
 
-	dest := "."
-	ref := ""
-	src := ""
-
 	flag.Parse()
 
-	if showHelp {
-		printHelp()
-		os.Exit(1)
-	}
-
 	args := flag.Args()
-	if len(args) == 0 {
+	if showHelp || len(args) == 0 {
 		printHelp()
 		os.Exit(1)
 	}
 
+	dest := "."
 	if len(args) > 1 {
 		dest = args[1]
 	}
 
-	if strings.Contains(args[0], "#") {
-		split := strings.Split(args[0], "#")
-		ref = split[len(split)-1]
-		src = strings.Join(split[:len(split)-1], "#")
-	} else {
-		src = args[0]
-	}
-
+	src, ref := ResolveSource(args[0])
 	src = util.ResolveUrl(src)
 
 	auth := git.Auth{
@@ -71,7 +56,6 @@ func Execute(globalHelpFunc func(), die func(error)) {
 		Username:   username,
 		Password:   password,
 	}
-
 	refs, err := git.RemoteReferences(src, auth)
 	if err != nil {
 		die(err)
@@ -109,4 +93,13 @@ func Execute(globalHelpFunc func(), die func(error)) {
 	}
 
 	os.Exit(0)
+}
+
+func ResolveSource(src string) (string, string) {
+	if !strings.Contains(src, "#") {
+		return src, ""
+	}
+
+	split := strings.Split(src, "#")
+	return strings.Join(split[:len(split)-1], "#"), split[len(split)-1]
 }

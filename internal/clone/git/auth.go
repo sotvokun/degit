@@ -15,7 +15,8 @@ type Auth struct {
 }
 
 func (a *Auth) Transport() (transport.AuthMethod, error) {
-	if a.PrivateKey != "" {
+	switch {
+	case a.PrivateKey != "":
 		_, err := os.Stat(a.PrivateKey)
 		if err != nil {
 			return nil, err
@@ -28,12 +29,14 @@ func (a *Auth) Transport() (transport.AuthMethod, error) {
 			return nil, err
 		}
 		return publicKey, nil
-	} else if a.Username != "" && a.Password != "" {
+
+	case a.Username != "" && a.Password != "":
 		return &http.BasicAuth{
 			Username: a.Username,
 			Password: a.Password,
 		}, nil
-	} else {
+
+	default:
 		return nil, nil
 	}
 }

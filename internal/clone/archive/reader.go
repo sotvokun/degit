@@ -51,7 +51,7 @@ func (r *Reader) Close() error {
 }
 
 func (r *Reader) Uncompress(dest string) error {
-	var header *tar.Header = nil
+	var header *tar.Header
 	header, err := r.tarball.Next()
 	for ; err == nil; header, err = r.tarball.Next() {
 		path := dest + "/" + header.Name
