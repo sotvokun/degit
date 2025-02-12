@@ -66,8 +66,9 @@ degit template -s key=value -s key2=value2 path/of/template
 | nonstrict          | `nonstrict=true` `nonstrict=TRUE` | Use the "zero value" for variables that not given. The value is 'true'; case insensitive |
 | removesource       | `removesource=true`               | Remove the "source file" if the file path of result is not same with the path of "source file" |
 
-#### Rendering with glob
+#### Rendering with glob mode
 
 ```sh
-degit template -g "src/**/*.js" -g "package.json"
+# Use '-g' option to enable glob mode, all arguments will be as glob pattern
+degit template -g "src/**/*.js" "package.json"
 ```

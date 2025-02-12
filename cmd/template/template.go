@@ -11,16 +11,16 @@ import (
 
 var definitions MapVar
 var options MapVar
-var globs SliceVar
+var globMode bool
 var dryRun bool
 var showHelp bool
 
 func printHelp() {
-	fmt.Println("Usage: degit template [options] <filepath> [<resultpath>]")
+	fmt.Println("Usage: degit template [options] {<filepath> [<resultpath>] | <glob-pattern>+}")
 	fmt.Println("Options:")
 	fmt.Println("   -D <name>=<value>   Define a variable")
 	fmt.Println("   -s <name>=<value>   Set a option")
-	fmt.Println("   -g <glob>           Add a glob pattern (<filepath> and <resultpath> will be ignored)")
+	fmt.Println("   -g                  Enable glob mode (all arguments will be treated as glob patterns)")
 	fmt.Println("   -n                  Dry run - show what would be done without making changes")
 	fmt.Println("   -h                  Show help")
 }
@@ -28,7 +28,7 @@ func printHelp() {
 func initFlag() {
 	flag.Var(&definitions, "D", "Define a variable")
 	flag.Var(&options, "s", "Set a option")
-	flag.Var(&globs, "g", "Add a glob pattern")
+	flag.BoolVar(&globMode, "g", false, "Enable glob mode (all arguments will be treated as glob patterns)")
 	flag.BoolVar(&dryRun, "n", false, "Dry run - show what would be done without making changes")
 	flag.BoolVar(&showHelp, "h", false, "Show help")
 	flag.Usage = printHelp
@@ -42,13 +42,13 @@ func Execute(globalHelpFunc func(), die func(error)) {
 	flag.Parse()
 
 	args := flag.Args()
-	if (len(globs) == 0 && len(args) == 0) || showHelp {
+	if len(args) == 0 || showHelp {
 		printHelp()
 		os.Exit(1)
 	}
 
-	if len(globs) > 0 {
-		if err := executeWithGlob(); err != nil {
+	if globMode {
+		if err := executeWithGlob(args); err != nil {
 			die(err)
 		}
 	} else {
@@ -58,8 +58,8 @@ func Execute(globalHelpFunc func(), die func(error)) {
 	}
 }
 
-func executeWithGlob() error {
-	files, err := executor.Glob(globs)
+func executeWithGlob(patterns []string) error {
+	files, err := executor.Glob(patterns)
 	if err != nil {
 		return err
 	}
