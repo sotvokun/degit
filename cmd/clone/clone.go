@@ -1,8 +1,9 @@
 package clone
 
 import (
-	"degit/internal/degit"
-	"degit/internal/git"
+	"degit/internal/clone/cache"
+	"degit/internal/clone/git"
+	"degit/internal/clone/util"
 	"flag"
 	"fmt"
 	"os"
@@ -63,40 +64,46 @@ func Execute(globalHelpFunc func(), die func(error)) {
 		src = args[0]
 	}
 
-	src = degit.ResolveRemoteUrl(src)
-	refs, err := git.GetRemoteRefs(src, git.Auth{
-		PrivateKeyPath: sshPrivateKeyPath,
-		Username:       username,
-		Password:       password,
-	})
+	src = util.ResolveUrl(src)
+
+	auth := git.Auth{
+		PrivateKey: sshPrivateKeyPath,
+		Username:   username,
+		Password:   password,
+	}
+
+	refs, err := git.RemoteReferences(src, auth)
 	if err != nil {
 		die(err)
 	}
 
-	targetRef, err := git.SearchRef(refs, &ref)
+	targetRef, err := util.SearchRef(refs, ref)
 	if err != nil {
 		die(err)
 	}
 
-	repositoryCache := degit.NewRepositoryCache(src, *targetRef)
-	exists, err := repositoryCache.Exists()
+	cacheExists, path, err := cache.ExistsInfo(src, targetRef.Name().Short(), targetRef.Hash().String())
 	if err != nil {
 		die(err)
 	}
-
-	if !exists {
-		err := repositoryCache.Cache(degit.RepositoryCacheOptions{
-			Force:          true,
-			Username:       username,
-			Password:       password,
-			PrivateKeyPath: sshPrivateKeyPath,
-		})
+	if cacheExists {
+		err := cache.ExtractArchive(path, dest)
 		if err != nil {
 			die(err)
 		}
 	}
 
-	err = repositoryCache.Extract(dest)
+	repo, fs, err := git.Clone(src, targetRef.Name(), auth)
+	if err != nil {
+		die(err)
+	}
+
+	path, err = cache.Create(repo, fs)
+	if err != nil {
+		die(err)
+	}
+
+	err = cache.ExtractArchive(path, dest)
 	if err != nil {
 		die(err)
 	}
