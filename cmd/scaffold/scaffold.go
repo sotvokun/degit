@@ -3,6 +3,7 @@ package scaffold
 import (
 	"degit/cmd/cmdargs"
 	"degit/internal/scaffold/config"
+	"degit/internal/scaffold/worker"
 	"flag"
 	"fmt"
 	"os"
@@ -67,6 +68,11 @@ func Execute(globalHelpFunc func(), die func(error)) {
 		if err != nil {
 			die(err)
 		}
+	case args[0] == ".":
+		err := executeWithDot()
+		if err != nil {
+			die(err)
+		}
 	}
 }
 
@@ -81,4 +87,18 @@ func executeWithInit() error {
 		return err
 	}
 	return nil
+}
+
+func executeWithDot() error {
+	configPath := config.ConfigFilePath(cwd)
+	if !config.Exists(configPath) {
+		return fmt.Errorf("configuration file does not exist")
+	}
+
+	cfg, err := config.LoadFile(configPath)
+	if err != nil {
+		return err
+	}
+
+	return worker.ScaffoldProject(cfg)
 }
