@@ -2,6 +2,7 @@ package main
 
 import (
 	"degit/cmd/clone"
+	"degit/cmd/scaffold"
 	"degit/cmd/template"
 	"fmt"
 	"os"
@@ -10,6 +11,7 @@ import (
 func printHelp() {
 	fmt.Println("Usage: degit [options] <src>[#<ref>] [<dest>]")
 	fmt.Println("Usage: degit template <src> [<dest>]")
+	fmt.Println("Usage: degit scaffold <alias>")
 }
 
 func main() {
@@ -21,6 +23,8 @@ func main() {
 	switch os.Args[1] {
 	case "template":
 		template.Execute(printHelp, die)
+	case "scaffold":
+		scaffold.Execute(printHelp, die)
 	default:
 		clone.Execute(printHelp, die)
 	}

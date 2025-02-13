@@ -1,6 +1,7 @@
 package template
 
 import (
+	"degit/cmd/cmdargs"
 	"degit/internal/template/executor"
 	"degit/internal/template/renderer"
 	"flag"
@@ -9,8 +10,8 @@ import (
 	"strings"
 )
 
-var definitions MapVar
-var options MapVar
+var definitions cmdargs.MapVar
+var options cmdargs.MapVar
 var globMode bool
 var dryRun bool
 var showHelp bool
