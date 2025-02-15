@@ -48,7 +48,7 @@ func Execute(globalHelpFunc func(), die func(error)) {
 		dest = args[1]
 	}
 
-	src, ref := ResolveSource(args[0])
+	src, ref := resolveSource(args[0])
 	src = util.ResolveUrl(src)
 
 	auth := git.Auth{
@@ -95,7 +95,7 @@ func Execute(globalHelpFunc func(), die func(error)) {
 	os.Exit(0)
 }
 
-func ResolveSource(src string) (string, string) {
+func resolveSource(src string) (string, string) {
 	if !strings.Contains(src, "#") {
 		return src, ""
 	}
