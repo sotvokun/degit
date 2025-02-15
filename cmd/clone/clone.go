@@ -100,6 +100,9 @@ func ResolveSource(src string) (string, string) {
 		return src, ""
 	}
 
-	split := strings.Split(src, "#")
-	return strings.Join(split[:len(split)-1], "#"), split[len(split)-1]
+	split := strings.SplitN(src, "#", 2)
+	if len(split) < 2 {
+		return split[0], ""
+	}
+	return split[0], split[1]
 }
