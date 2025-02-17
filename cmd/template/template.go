@@ -2,19 +2,26 @@ package template
 
 import (
 	"degit/internal/cli"
-	"degit/internal/template/executor"
-	"degit/internal/template/renderer"
+	"degit/internal/command"
+	"degit/internal/common/filesystem"
+	"degit/internal/template/pathmap"
+	"degit/internal/template/render"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 )
 
+type RenderResult = render.ContextKeyExecuteResultType
+type PathMapResult = pathmap.ContextKeyExecuteResultType
+
 var definitions cli.MapVar
 var options cli.MapVar
 var globMode bool
 var dryRun bool
+var verbose bool
 var showHelp bool
+var ctx *command.Context
 
 func printHelp() {
 	fmt.Println("Usage: degit template [options] {<filepath> [<resultpath>] | <glob-pattern>+}")
@@ -23,6 +30,7 @@ func printHelp() {
 	fmt.Println("   -s <name>=<value>   Set a option")
 	fmt.Println("   -g                  Enable glob mode (all arguments will be treated as glob patterns)")
 	fmt.Println("   -n                  Dry run - show what would be done without making changes")
+	fmt.Println("   -v                  Verbose output")
 	fmt.Println("   -h                  Show help")
 }
 
@@ -31,6 +39,7 @@ func initFlag() {
 	flag.Var(&options, "s", "Set a option")
 	flag.BoolVar(&globMode, "g", false, "Enable glob mode (all arguments will be treated as glob patterns)")
 	flag.BoolVar(&dryRun, "n", false, "Dry run - show what would be done without making changes")
+	flag.BoolVar(&verbose, "v", false, "Verbose output")
 	flag.BoolVar(&showHelp, "h", false, "Show help")
 	flag.Usage = printHelp
 }
@@ -48,6 +57,10 @@ func Execute(globalHelpFunc func(), die func(error)) {
 		os.Exit(1)
 	}
 
+	ctx = command.NewContext()
+	ctx.DryRun = dryRun
+	ctx.Verbose = verbose
+
 	if globMode {
 		if err := executeWithGlob(args); err != nil {
 			die(err)
@@ -60,36 +73,33 @@ func Execute(globalHelpFunc func(), die func(error)) {
 }
 
 func executeWithGlob(patterns []string) error {
-	files, err := executor.Glob(patterns)
-	if err != nil {
+	glob := filesystem.NewGlobCommand(patterns)
+	if err := glob.Execute(ctx); err != nil {
 		return err
 	}
 
-	renderer, err := createRenderer()
-	if err != nil {
+	files := ctx.Get(filesystem.ContextKeyGlobResult).(filesystem.ContextKeyGlobResultType)
+	if len(files) == 0 {
+		return fmt.Errorf("no files found")
+	}
+
+	renderCmd := render.NewRenderCommand(files, definitions)
+	if err := setupRenderCommand(renderCmd); err != nil {
 		return err
 	}
-	renderingResult, err := renderer.RenderFiles(files, definitions)
-	if err != nil {
+	if err := renderCmd.Execute(ctx); err != nil {
 		return err
 	}
 
-	result := executor.ProcessResult{}
-	for filepath, content := range renderingResult {
-		result[filepath] = executor.ProcessResultItem{
-			Content: content,
-			Output:  "",
-		}
+	pathmapCmd := pathmap.New(files)
+	if err := setupPathMapCommand(pathmapCmd); err != nil {
+		return err
+	}
+	if err := pathmapCmd.Execute(ctx); err != nil {
+		return err
 	}
 
-	exec := createExecutor()
-
-	if dryRun {
-		exec.PrintOutput(result)
-		return nil
-	}
-
-	return exec.WriteOutput(result)
+	return operateResult(ctx)
 }
 
 func executeWithPath(args []string) error {
@@ -103,91 +113,74 @@ func executeWithPath(args []string) error {
 		dest = args[1]
 	}
 
-	content, err := executor.ReadFile(src)
-	if err != nil {
+	files := []string{src}
+
+	renderCmd := render.NewRenderCommand(files, definitions)
+	if err := setupRenderCommand(renderCmd); err != nil {
+		return err
+	}
+	if err := renderCmd.Execute(ctx); err != nil {
 		return err
 	}
 
-	renderer, err := createRenderer()
-	if err != nil {
+	pathmapCmd := pathmap.New(files)
+	if err := setupPathMapCommand(pathmapCmd); err != nil {
 		return err
 	}
-	content, err = renderer.Render(content, definitions)
-	if err != nil {
+	if strings.TrimSpace(dest) != "" {
+		pathmapCmd.SetPredefinedDict(map[string]string{src: dest})
+	}
+	if err := pathmapCmd.Execute(ctx); err != nil {
 		return err
 	}
 
-	result := executor.ProcessResult{
-		src: {
-			Content: content,
-			Output:  dest,
-		},
-	}
-	exec := createExecutor()
-
-	if dryRun {
-		exec.PrintOutput(result)
-		return nil
-	}
-
-	return exec.WriteOutput(result)
+	return operateResult(ctx)
 }
 
-func createRenderer() (*renderer.Renderer, error) {
-	r := renderer.New()
-	delimiter, err := getOptionDelimiter()
+func setupRenderCommand(renderCommand *render.RenderCommand) error {
+	delimiters, err := getOptionDelimiter()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	r.SetDelimiter(delimiter[0], delimiter[1])
+	renderCommand.SetDelimiters(delimiters[0], delimiters[1])
+
 	if getOptionNonstrict() {
-		r.SetMissingKeyPolicy(renderer.MissingKeyPolicyDefault)
+		renderCommand.SetMissingKeyPolicy(render.MissingKeyPolicyDefault)
 	}
-	return r, nil
+
+	return nil
 }
 
-func createExecutor() *executor.Executor {
-	exec := executor.New()
-	exec.Extension = getOptionExtensions()
-	exec.RemoveSource = getOptionRemovesource()
-	return exec
+func setupPathMapCommand(pathMapCommand *pathmap.PathMapCommand) error {
+	pathMapCommand.ExtensionsToRemove = getOptionExtensions()
+	return nil
 }
 
-func getOptionExtensions() []string {
-	ext, ok := options["extensions"]
-	if !ok {
-		return []string{}
-	}
-	return strings.Split(ext, ",")
-}
+func operateResult(ctx *command.Context) error {
+	renderResult := ctx.Get(render.ContextKeyExecuteResult).(RenderResult)
+	pathmapResult := ctx.Get(pathmap.ContextKeyExecuteResult).(PathMapResult)
 
-func getOptionDelimiter() ([]string, error) {
-	delimiter, ok := options["delimiter"]
-	if !ok {
-		return []string{"{{", "}}"}, nil
-	}
-	commaCount := strings.Count(delimiter, ",")
-	if commaCount != 1 {
-		return nil, fmt.Errorf("invalid delimiter format")
-	}
-	if delimiter[0] == ',' || delimiter[len(delimiter)-1] == ',' {
-		return nil, fmt.Errorf("invalid delimiter format")
-	}
-	return strings.Split(delimiter, ","), nil
-}
+	filesystemCommands := make([]command.Command, 0)
+	for src, content := range renderResult {
+		dest, ok := pathmapResult[src]
+		if !ok {
+			dest = src
+		}
 
-func getOptionNonstrict() bool {
-	nonstrict, ok := options["nonstrict"]
-	if !ok {
-		return false
-	}
-	return strings.ToLower(nonstrict) == "true"
-}
+		writeCmd := filesystem.NewWriteCommand(dest, []byte(content))
+		filesystemCommands = append(filesystemCommands, writeCmd)
 
-func getOptionRemovesource() bool {
-	removesource, ok := options["removesource"]
-	if !ok {
-		return false
+		if getOptionRemovesource() && src != dest {
+			removeCmd := filesystem.NewRemoveCommand(src)
+			filesystemCommands = append(filesystemCommands, removeCmd)
+		}
 	}
-	return strings.ToLower(removesource) == "true"
+
+	for _, cmd := range filesystemCommands {
+		if err := cmd.Execute(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
