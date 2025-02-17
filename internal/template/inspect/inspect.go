@@ -38,6 +38,12 @@ func (i *InspectCommand) Execute(ctx *command.Context) error {
 		return err
 	}
 	ctx.Set(ContextKeyExecuteResult, variables)
+	ctx.Logf("Found total %d variables", len(variables))
+	if ctx.Verbose {
+		for _, v := range variables {
+			ctx.Logf("  %s", v)
+		}
+	}
 	return nil
 }
 
@@ -56,7 +62,7 @@ func (i *InspectCommand) inspectFiles(ctx *command.Context, result *[]string) er
 			i.traverseNode(node, &vars, *result)
 		}
 		*result = append(*result, vars...)
-		ctx.Logf("Inspecting template %s found %d variables", t.Name(), len(vars))
+		ctx.Logf("Inspecting template %s found %d new variables", t.Name(), len(vars))
 		if ctx.Verbose {
 			for _, v := range vars {
 				ctx.Logf("  %s", v)
