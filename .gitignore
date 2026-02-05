@@ -1,7 +1,1 @@
-degit
-degit.exe
-.DS_Store
-
-/.vscode
-
-!internal/degit
+dist/

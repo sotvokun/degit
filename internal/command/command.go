@@ -1,5 +1,13 @@
 package command
 
+const (
+	ExitCodeSuccess = iota
+	ExitCodeArgumentError
+	ExitCodeInternalError
+)
+
 type Command interface {
-	Execute(ctx *Context) error
+	Name() string
+	Usage() string
+	Run(args []string) (int, error)
 }
