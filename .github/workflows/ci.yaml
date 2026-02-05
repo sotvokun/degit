@@ -75,8 +75,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v6
         with:
-          name: emit-*
-          path: dist/
+          path: dist
 
       - name: Release
         uses: ncipollo/release-action@v2
