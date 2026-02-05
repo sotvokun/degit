@@ -78,6 +78,6 @@ jobs:
           path: dist
 
       - name: Release
-        uses: ncipollo/release-action@v2
+        uses: ncipollo/release-action@v1
         with:
           artifacts: dist/emit-*
