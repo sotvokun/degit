@@ -63,8 +63,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: emit-*
-          path: dist/
+          path: dist/emit-*
           retention-days: 1
 
   release:
